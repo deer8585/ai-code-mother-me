@@ -19,8 +19,8 @@ class AiCodeMotherMeApplicationTests {
     void contextLoads() {
         Flux<String> resultStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(
             "生成一个任务记录网站，不多于20行代码", 
-            CodeGenTypeEnum.HTML, 
-            1L
+            CodeGenTypeEnum.HTML,
+                2022006075610714114L
         );
         
         // 订阅并等待完成，设置超时时间为60秒

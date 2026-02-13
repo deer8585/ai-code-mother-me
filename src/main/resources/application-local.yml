@@ -1,0 +1,74 @@
+spring:
+  application:
+    name: ai-code-mother-me
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/ai_code_mother_me
+    username: root
+    password: 1234
+
+server:
+  port: 8123
+  servlet:
+    context-path: /api
+#springdoc-openapi ???? Swagger ??
+springdoc:
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.wyb.aicodemotherme.controller
+#knife4j
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: false
+    # ??????????
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDelete # ????????????
+      logic-delete-value: 1 # ?????????? 1?
+      logic-not-delete-value: 0 # ?????????? 0?
+
+# AI
+langchain4j:
+  open-ai:
+    chat-model:
+      base-url: https://api.deepseek.com
+      api-key: sk-6b1ce29d59714b9f9c955190125fa1b0
+      model-name: deepseek-chat
+      log-requests: true
+      log-responses: true
+      timeout: 300s  # 设置超时时间为5分钟
+      max-retries: 3  # 最大重试次数
+      max-tokens: 8192
+    #      strict-json-schema: true
+    #      response-format: json_object
+    streaming-chat-model:
+      base-url: https://api.deepseek.com
+      api-key: sk-6b1ce29d59714b9f9c955190125fa1b0
+      model-name: deepseek-chat
+      max-tokens: 8192
+      log-requests: true
+      log-responses: true
+      # 推理 AI 模型配置（用于复杂的推理任务）
+    reasoning-streaming-chat-model:
+      base-url: https://api.deepseek.com
+      api-key: sk-6b1ce29d59714b9f9c955190125fa1b0
+      model-name: deepseek-chat
+      max-tokens: 32768
+      temperature: 0.1
+      log-requests: true
+      log-responses: true
+    # 智能路由 AI 模型配置（用于简单的分类任务）
+    routing-chat-model:
+      base-url: https://api.deepseek.com
+      api-key: sk-6b1ce29d59714b9f9c955190125fa1b0
+      model-name: deepseek-chat
+      max-tokens: 32768
+      temperature: 0.1
+      log-requests: true
+      log-responses: true
