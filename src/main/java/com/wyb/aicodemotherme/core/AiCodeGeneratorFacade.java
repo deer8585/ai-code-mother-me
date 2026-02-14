@@ -1,5 +1,6 @@
 package com.wyb.aicodemotherme.core;
 
+import com.wyb.aicodemotherme.ai.AiCodeGeneratorService;
 import com.wyb.aicodemotherme.ai.AiCodeGeneratorServiceFactory;
 import com.wyb.aicodemotherme.core.parser.CodeParserExecutor;
 import com.wyb.aicodemotherme.core.saver.CodeFileSaverExecutor;
@@ -32,13 +33,16 @@ public class AiCodeGeneratorFacade {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
         }
+
+        //根据appId获取对应的 AI服务实例
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
         return switch (codeGenTypeEnum) {
             case HTML -> {
-                Flux<String> codeStream = aiCodeGeneratorServiceFactory.aiCodeGeneratorService().generateHtmlCodeStream(userMessage);
+                Flux<String> codeStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
                 yield processCodeStream(codeStream, CodeGenTypeEnum.HTML,appId);
             }
             case MULTI_FILE -> {
-                Flux<String> codeStream = aiCodeGeneratorServiceFactory.aiCodeGeneratorService().generateMultiFileCodeStream(userMessage);
+                Flux<String> codeStream = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
                 yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE,appId);
             }
             default -> {
@@ -59,19 +63,14 @@ public class AiCodeGeneratorFacade {
     private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum codeGenType,Long appId) {
         StringBuilder codeBuilder = new StringBuilder();
         return codeStream
-            .doOnSubscribe(subscription -> log.info("开始接收AI流式响应..."))
             .doOnNext(chunk -> {
                 // 实时收集代码片段
-                log.debug("接收到代码片段: {}", chunk);
                 codeBuilder.append(chunk);
             })
             .doOnComplete(() -> {
                 // 流式返回完成后保存代码
-                log.info("AI响应完成，开始保存代码...");
                 try {
                     String completeCode = codeBuilder.toString();
-                    log.info("完整代码长度: {} 字符", completeCode.length());
-                    
                     // 使用执行器解析代码
                     Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
                     // 使用执行器保存代码

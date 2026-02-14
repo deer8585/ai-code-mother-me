@@ -26,19 +26,19 @@ public interface AiCodeGeneratorService {
 
     /**
      * 生成 HTML 代码 (流式)
-     * @param userMessage
+     * @param userMessage 用户消息
      * @return
      */
     @SystemMessage(fromResource = "prompt/codegen-html-system-prompt.txt")
-    Flux<String> generateHtmlCodeStream(String userMessage);
+    Flux<String> generateHtmlCodeStream( String userMessage);
 
     /**
      * 生成 多文件 代码 (流式)
-     * @param userMessage
+     * @param userMessage 用户消息
      * @return
      */
     @SystemMessage(fromResource = "prompt/codegen-multi-file-system-prompt.txt")
-    Flux<String> generateMultiFileCodeStream(String userMessage);
+    Flux<String> generateMultiFileCodeStream( String userMessage);
 
     /**
      * 生成 vue项目 代码 (流式)

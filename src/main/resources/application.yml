@@ -8,6 +8,18 @@ spring:
     password: 1234
   profiles:
     active: local
+  data:
+    redis:
+      host: 192.168.137.128
+      port: 6379
+      password: 123456
+      ttl: 3600
+      database: 0
+    # session 配置（使用 Redis 存储）
+    session:
+      store-type: redis
+      # session 30 天过期
+      timeout: 2592000
 
 server:
   port: 8123
@@ -34,4 +46,6 @@ mybatis-plus:
       logic-delete-field: isDelete # ????????????
       logic-delete-value: 1 # ?????????? 1?
       logic-not-delete-value: 0 # ?????????? 0?
+
+
 

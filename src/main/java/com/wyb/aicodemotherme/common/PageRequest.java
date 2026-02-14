@@ -8,12 +8,12 @@ public class PageRequest {
     /**
      * 当前页号
      */
-    private int pageNum = 1;
+    private Long pageNum = 1L;
 
     /**
      * 页面大小
      */
-    private int pageSize = 10;
+    private Long pageSize = 10L;
 
     /**
      * 排序字段
