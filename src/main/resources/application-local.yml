@@ -6,6 +6,11 @@ spring:
     url: jdbc:mysql://localhost:3306/ai_code_mother_me
     username: root
     password: 1234
+#  devtools:
+#    restart:
+#      enabled: false
+#      exclude: "dev/langchain4j/**,com/github/benmanes/caffeine/**"
+#      additional-exclude: "META-INF/maven/**,META-INF/resources/**,resources/**,static/**,public/**,templates/**,**/*Test.class,**/*Tests.class"
 
 server:
   port: 8123
@@ -59,7 +64,7 @@ langchain4j:
       base-url: https://api.deepseek.com
       api-key: sk-6b1ce29d59714b9f9c955190125fa1b0
       model-name: deepseek-chat
-      max-tokens: 32768
+      max-tokens: 8192
       temperature: 0.1
       log-requests: true
       log-responses: true
@@ -68,7 +73,7 @@ langchain4j:
       base-url: https://api.deepseek.com
       api-key: sk-6b1ce29d59714b9f9c955190125fa1b0
       model-name: deepseek-chat
-      max-tokens: 32768
+      max-tokens: 8192
       temperature: 0.1
       log-requests: true
       log-responses: true

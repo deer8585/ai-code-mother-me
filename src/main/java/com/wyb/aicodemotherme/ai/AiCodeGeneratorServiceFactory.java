@@ -2,17 +2,17 @@ package com.wyb.aicodemotherme.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.wyb.aicodemotherme.ai.tools.ToolManager;
 import com.wyb.aicodemotherme.exception.BusinessException;
 import com.wyb.aicodemotherme.exception.ErrorCode;
 import com.wyb.aicodemotherme.model.enums.CodeGenTypeEnum;
 import com.wyb.aicodemotherme.service.ChatHistoryService;
 import com.wyb.aicodemotherme.util.SpringContextUtil;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
-import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.AiServices;
-import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
@@ -20,23 +20,21 @@ import org.springframework.context.annotation.Configuration;
 import java.time.Duration;
 
 /**
- * AI 代码生成服务工厂
+ * AI 代码生成服务工厂（生产 AI service 的）
  */
 @Slf4j
 @Configuration
 public class AiCodeGeneratorServiceFactory {
 
-    @Resource
-    private ChatModel chatModel;
-
-    @Resource
-    private StreamingChatModel streamingChatModel;
 
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
 
     @Resource
     private ChatHistoryService chatHistoryService;
+
+    @Resource
+    private ToolManager toolManager;
 
 
     /**
@@ -58,33 +56,33 @@ public class AiCodeGeneratorServiceFactory {
 
         //3. 根据代码生成类型选择不同的模型配置
         return switch (codeGenType) {
-//            //Vue项目使用推理模型
-//            case VUE_PROJECT -> {
-//                // 使用多例模式的 StreamingChatModel 解决并发问题
-//                StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean(
-//                        "reasoningStreamingChatModelPrototype", StreamingChatModel.class);
-//                yield AiServices.builder(AiCodeGeneratorService.class)
-//
-//                        .streamingChatModel(reasoningStreamingChatModel)
-//                        //为工具（ToolMemoryId）提供上下文能力,这是 AI 工具调用能拿到 appId 的前提
-//                        .chatMemoryProvider(memoryId -> chatMemory) //支持 memoryId → chatMemory 的映射
-//                        .tools(toolManager.getAllTools())
-//                        //防 AI 幻觉
-//                        .hallucinatedToolNameStrategy(toolExecutionRequest ->
-//                                ToolExecutionResultMessage.from(toolExecutionRequest,
-//                                        "Error: there is no tool called" +
-//                                                toolExecutionRequest.name()))
-//                        .build();
-//            }
+            //Vue项目使用推理模型
+            case VUE_PROJECT -> {
+                // 使用多例模式的 StreamingChatModel 解决并发问题
+                StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean(
+                        "reasoningStreamingChatModelPrototype", StreamingChatModel.class);
+                yield AiServices.builder(AiCodeGeneratorService.class)
+
+                        .streamingChatModel(reasoningStreamingChatModel)
+                        //为工具（ToolMemoryId）提供上下文能力,这是 AI 工具调用能拿到 appId 的前提
+                        .chatMemoryProvider(memoryId -> chatMemory) //支持 memoryId → chatMemory 的映射
+                        .tools(toolManager.getAllTools())
+                        //防 AI 幻觉
+                        .hallucinatedToolNameStrategy(toolExecutionRequest ->
+                                ToolExecutionResultMessage.from(toolExecutionRequest,
+                                        "Error: there is no tool called" +
+                                                toolExecutionRequest.name()))
+                        .build();
+            }
 
 
             //HTML和多文件生成使用默认模型
             case HTML, MULTI_FILE -> {
-//                // 使用多例模式的 StreamingChatModel 解决并发问题
-//                StreamingChatModel openAiStreamingChatModel = SpringContextUtil.getBean(
-//                        "streamingChatModelPrototype", StreamingChatModel.class);
+                // 使用多例模式的 StreamingChatModel 解决并发问题
+                StreamingChatModel openAiStreamingChatModel = SpringContextUtil.getBean(
+                        "streamingChatModelPrototype", StreamingChatModel.class);
                 yield AiServices.builder(AiCodeGeneratorService.class)
-                        .streamingChatModel(streamingChatModel)
+                        .streamingChatModel(openAiStreamingChatModel)
                         .chatMemory(chatMemory)
                         .build();
             }
@@ -128,12 +126,20 @@ public class AiCodeGeneratorServiceFactory {
     }
 
     /**
-     * 构建 Redis 缓存键
+     * 构建 caffeine 缓存键
      * @param appId
      * @param codeGenType
      * @return
      */
     private String buildCacheKey(long appId, CodeGenTypeEnum codeGenType) {
         return appId + "-" + codeGenType.getValue();
+    }
+
+    /**
+     * 清理所有缓存（用于解决类加载器冲突问题）
+     */
+    public void clearAllCache() {
+        serviceCache.invalidateAll();
+        log.info("已清理所有AI服务实例缓存");
     }
 }
