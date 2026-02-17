@@ -2,6 +2,7 @@ package com.wyb.aicodemotherme.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.wyb.aicodemotherme.ai.guardrail.PromptSafetyInputGuardrail;
 import com.wyb.aicodemotherme.ai.tools.ToolManager;
 import com.wyb.aicodemotherme.exception.BusinessException;
 import com.wyb.aicodemotherme.exception.ErrorCode;
@@ -67,11 +68,13 @@ public class AiCodeGeneratorServiceFactory {
                         //为工具（ToolMemoryId）提供上下文能力,这是 AI 工具调用能拿到 appId 的前提
                         .chatMemoryProvider(memoryId -> chatMemory) //支持 memoryId → chatMemory 的映射
                         .tools(toolManager.getAllTools())
+                        .inputGuardrails(new PromptSafetyInputGuardrail()) // 添加输入护轨
                         //防 AI 幻觉
                         .hallucinatedToolNameStrategy(toolExecutionRequest ->
                                 ToolExecutionResultMessage.from(toolExecutionRequest,
                                         "Error: there is no tool called" +
                                                 toolExecutionRequest.name()))
+                        .maxSequentialToolsInvocations(20) // 最多连续调用 20 次工具
                         .build();
             }
 
@@ -84,6 +87,8 @@ public class AiCodeGeneratorServiceFactory {
                 yield AiServices.builder(AiCodeGeneratorService.class)
                         .streamingChatModel(openAiStreamingChatModel)
                         .chatMemory(chatMemory)
+                        .inputGuardrails(new PromptSafetyInputGuardrail()) // 添加输入护轨
+                        .maxSequentialToolsInvocations(20) // 最多连续调用 20 次工具
                         .build();
             }
 

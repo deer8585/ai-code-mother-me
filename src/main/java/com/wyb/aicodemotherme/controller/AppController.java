@@ -26,6 +26,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -181,31 +182,6 @@ public class AppController {
         appVOPage.setRecords(appVOList);
 
         // 8. 返回结果
-        return ResultUtils.success(appVOPage);
-    }
-
-    /**
-     * 分页获取精选应用列表
-     *
-     * @param appQueryRequest 查询请求
-     * @return 精选应用列表
-     */
-    @PostMapping("/good/list/page/vo")
-    public BaseResponse<Page<AppVO>> listGoodAppVOByPage(@RequestBody AppQueryRequest appQueryRequest) {
-        ThrowUtils.throwIf(appQueryRequest == null, ErrorCode.PARAMS_ERROR);
-        // 限制每页最多 20 个
-        long pageSize = appQueryRequest.getPageSize();
-        ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "每页最多查询 20 个应用");
-        long pageNum = appQueryRequest.getPageNum();
-        // 只查询精选的应用
-        appQueryRequest.setPriority(AppConstant.GOOD_APP_PRIORITY);
-        QueryWrapper queryWrapper = appService.getQueryWrapper(appQueryRequest);
-        // 分页查询
-        Page<App> appPage = appService.page(Page.of(pageNum, pageSize), queryWrapper);
-        // 数据封装
-        Page<AppVO> appVOPage = new Page<>(pageNum, pageSize, appPage.getTotal());
-        List<AppVO> appVOList = appService.getAppVOList(appPage.getRecords());
-        appVOPage.setRecords(appVOList);
         return ResultUtils.success(appVOPage);
     }
 
@@ -432,6 +408,43 @@ public class AppController {
         String downloadFileName = String.valueOf(appId);
         // 7. 调用通用下载服务
         projectDownloadService.downloadProjectAsZip(sourceDirPath, downloadFileName, response);
+    }
+
+    /**
+     * 分页获取精选应用列表
+     *
+     * @param appQueryRequest 查询请求
+     * @return 精选应用列表
+     */
+    @PostMapping("/good/list/page/vo")
+    @Cacheable(
+            value = "good_app_page",
+            key = "T(com.wyb.aicodemotherme.util.CacheKeyUtils).generateKey(#appQueryRequest)",
+            condition = "#appQueryRequest.pageNum <= 10"
+    )
+    public BaseResponse<Page<AppVO>> listGoodAppVOByPage(@RequestBody AppQueryRequest appQueryRequest) {
+        ThrowUtils.throwIf(appQueryRequest == null, ErrorCode.PARAMS_ERROR);
+
+        // 默认查询记录大小为10条
+        Long pageSize = appQueryRequest.getPageSize();
+        // 校验每页大小，限制最多20条，防止恶意请求大量数据
+        ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "每页最多查询 20 个应用");
+        //获取请求中的页码参数
+        Long pageNum = appQueryRequest.getPageNum();
+        // 设置查询条件：只查询精选应用
+        appQueryRequest.setPriority(AppConstant.GOOD_APP_PRIORITY);
+        // 构建查询条件
+        QueryWrapper queryWrapper = appService.getQueryWrapper(appQueryRequest);
+        // 分页查询
+        Page<App> appPage = appService.page(Page.of(pageNum, pageSize), queryWrapper);
+        // 数据转换和封装（创建新的AppVOPage对象，继承原始分页信息）
+        Page<AppVO> appVOPage = new Page<>(pageNum, pageSize, appPage.getTotal());
+        // 将App实体列表转换为AppVO列表（包含关联的用户信息）
+        List<AppVO> appVOList = appService.getAppVOList(appPage.getRecords());
+        // 将转换后的VO列表设置到分页对象中
+        appVOPage.setRecords(appVOList);
+        // 返回结果
+        return ResultUtils.success(appVOPage);
     }
 
 }
